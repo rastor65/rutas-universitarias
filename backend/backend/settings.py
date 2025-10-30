@@ -28,6 +28,10 @@ INSTALLED_APPS = [
     "rest_framework_simplejwt",
     "rest_framework_simplejwt.token_blacklist",
 
+    "gps",
+    "cupos",
+    "rutas",
+    "paradas",
     "accounts",
 ]
 
