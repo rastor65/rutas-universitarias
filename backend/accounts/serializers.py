@@ -18,7 +18,7 @@ User = get_user_model()
 class ResourceSerializer(serializers.ModelSerializer):
     class Meta:
         model = Resource
-        fields = ["id", "key", "name", "description"]
+        fields = ["id", "name", "description"]
 
 class RoleSerializer(serializers.ModelSerializer):
     resources = ResourceSerializer(many=True, read_only=True)

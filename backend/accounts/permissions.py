@@ -1,43 +1,42 @@
-from rest_framework.permissions import BasePermission
-from accounts.models import Resource
+# accounts/permissions.py
+
+from rest_framework.permissions import BasePermission, SAFE_METHODS
+from accounts.models import Resource, Permission
 
 
-class HasResourceLinkPermission(BasePermission):
+class HasRoleResourcePermission(BasePermission):
     """
-    Verifica acceso según el link_backend de un recurso.
-    Se concede acceso si la ruta solicitada (request.path)
-    comienza con el link_backend de un Resource asociado a
-    algún rol del usuario autenticado.
-    Incluye depuración para ver qué rutas y recursos compara.
+    Permiso avanzado basado en Roles, Recursos y Permisos.
+    Evalúa:
+      1️⃣ Si el usuario está autenticado.
+      2️⃣ Si tiene algún rol que incluya el recurso (link_backend).
+      3️⃣ Si posee el permiso necesario (view, create, update, delete) sobre ese recurso.
     """
 
     def has_permission(self, request, view):
         user = request.user
 
-        # 1️⃣ Usuario autenticado
+        # --- 1️⃣ Verificación de autenticación ---
         if not user or not user.is_authenticated:
-            print("🚫 Usuario no autenticado.")
             return False
 
-        # 2️⃣ Superusuario: acceso total
+        # --- 2️⃣ Superusuario: acceso total ---
         if getattr(user, "is_superuser", False):
-            print(f"✅ Superusuario '{user.username}' con acceso total.")
             return True
 
-        # 3️⃣ Normaliza ruta del request
-        path = (request.path or "").strip().lower()
+        path = (request.path or "").lower().strip()
         if not path.endswith("/"):
             path += "/"
 
-        # 4️⃣ Recursos del usuario
+        # --- 3️⃣ Determinar acción solicitada ---
+        action = self._map_method_to_permission(request.method)
+        if not action:
+            return False  # método HTTP no reconocido
+
+        # --- 4️⃣ Buscar recursos asociados al usuario ---
         user_resources = Resource.objects.filter(roles__users=user).distinct()
 
-        # 5️⃣ Imprimir depuración
-        print(f"👤 Usuario autenticado: {user.username}")
-        print(f"📡 Ruta solicitada: {path}")
-        print(f"🎯 Recursos asociados: {list(user_resources.values_list('link_backend', flat=True))}")
-
-        # 6️⃣ Verifica coincidencias
+        # --- 5️⃣ Evaluar acceso por recurso y permiso ---
         for resource in user_resources:
             link = (resource.link_backend or "").strip().lower()
             if not link:
@@ -45,9 +44,31 @@ class HasResourceLinkPermission(BasePermission):
             if not link.endswith("/"):
                 link += "/"
 
+            # Coincidencia de ruta (path inicia con el link del recurso)
             if path.startswith(link):
-                print(f"✅ Acceso concedido: {path} coincide con {link}")
-                return True
+                # Si no hay permisos asociados al recurso, permitir por defecto
+                if not resource.permissions.exists():
+                    return True
 
-        print(f"❌ Acceso denegado para '{user.username}' en {path}")
+                # Buscar permisos asociados al recurso
+                resource_perms = Permission.objects.filter(resources=resource)
+                # Ejemplo: code = "rutas.view" o "cupos.create"
+                for perm in resource_perms:
+                    code = perm.code.lower()
+                    if code.endswith(f".{action}"):
+                        return True
+
         return False
+
+    # --- 🔧 Helper: mapear método HTTP a tipo de permiso ---
+    def _map_method_to_permission(self, method: str) -> str:
+        method = method.upper()
+        if method in SAFE_METHODS:      # GET, HEAD, OPTIONS
+            return "view"
+        if method == "POST":
+            return "create"
+        if method in ("PUT", "PATCH"):
+            return "update"
+        if method == "DELETE":
+            return "delete"
+        return ""

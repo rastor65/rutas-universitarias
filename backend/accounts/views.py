@@ -8,8 +8,9 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.throttling import ScopedRateThrottle
-from accounts.permissions import HasResourceLinkPermission
+from accounts.permissions import HasRoleResourcePermission
 from rest_framework.permissions import IsAuthenticated
+from accounts.audit import AuditMixin
 
 from .models import Role, Resource
 from .serializers import (
@@ -41,7 +42,7 @@ class CsrfInitView(APIView):
     def get(self, request):
         return Response({"detail": "CSRF cookie set"}, status=status.HTTP_200_OK)
 
-class SessionLoginView(APIView):
+class SessionLoginView(AuditMixin, APIView):
     """
     POST {username, password, remember_me?}
     Crea sesión (cookie 'sessionid'). Requiere X-CSRFToken.
@@ -76,7 +77,7 @@ class SessionLoginView(APIView):
             "user": UserSerializer(user).data
         }, status=status.HTTP_200_OK)
 
-class SessionLogoutView(APIView):
+class SessionLogoutView(AuditMixin, APIView):
     """
     POST sin cuerpo -> cierra sesión (elimina cookie 'sessionid').
     Requiere X-CSRFToken porque modifica estado.
@@ -96,7 +97,7 @@ class MeSessionView(APIView):
     def get(self, request):
         return Response(UserSerializer(request.user).data, status=status.HTTP_200_OK)
 
-class PasswordChangeView(APIView):
+class PasswordChangeView(AuditMixin, APIView):
     """
     POST {old_password, new_password}
     Cambia la contraseña del usuario autenticado (por sesión).
@@ -109,7 +110,7 @@ class PasswordChangeView(APIView):
         ser.save()
         return Response({"detail": "Contraseña cambiada"}, status=status.HTTP_200_OK)
 
-class RegisterView(mixins.CreateModelMixin, viewsets.GenericViewSet):
+class RegisterView(AuditMixin, mixins.CreateModelMixin, viewsets.GenericViewSet):
     """
     Registro básico. Por seguridad, NO auto-login aquí (flujo explícito de login).
     """
@@ -118,7 +119,7 @@ class RegisterView(mixins.CreateModelMixin, viewsets.GenericViewSet):
     queryset = User.objects.none()
     http_method_names = ["post"]
 
-class PasswordResetRequestView(APIView):
+class PasswordResetRequestView(AuditMixin, APIView):
     """
     POST {email[, base_url]}
     Envía enlace de recuperación. Devuelve sent=True/False.
@@ -139,7 +140,7 @@ class PasswordResetRequestView(APIView):
             return Response({"detail": "Correo de recuperación enviado.", "sent": True}, status=status.HTTP_200_OK)
         return Response({"detail": "No se encontró un usuario con ese email.", "sent": False}, status=status.HTTP_404_NOT_FOUND)
 
-class PasswordResetConfirmView(APIView):
+class PasswordResetConfirmView(AuditMixin, APIView):
     """
     POST {uid, token, new_password}
     Confirma el restablecimiento y establece la nueva contraseña.
@@ -152,10 +153,10 @@ class PasswordResetConfirmView(APIView):
         ser.save()
         return Response({"detail": "Contraseña restablecida correctamente."}, status=status.HTTP_200_OK)
 
-class UserViewSet(viewsets.ModelViewSet):
+class UserViewSet(AuditMixin, viewsets.ModelViewSet):
     queryset = User.objects.all().order_by("date_joined")
     serializer_class = UserSerializer
-    permission_classes = [HasResourceLinkPermission]
+    permission_classes = [HasRoleResourcePermission]
     required_scopes = ["users.read"]
 
     def get_required_scopes(self):
@@ -168,10 +169,10 @@ class UserViewSet(viewsets.ModelViewSet):
         return super().get_permissions()
 
 
-class RoleViewSet(viewsets.ModelViewSet):
+class RoleViewSet(AuditMixin, viewsets.ModelViewSet):
     queryset = Role.objects.all().order_by("name")
     serializer_class = RoleSerializer
-    permission_classes = [HasResourceLinkPermission]
+    permission_classes = [HasRoleResourcePermission]
     required_scopes = ["roles.read"]
 
     def get_required_scopes(self):
@@ -205,10 +206,10 @@ class RoleViewSet(viewsets.ModelViewSet):
         role.resources.add(*resources)
         return Response({"assigned": [str(r.id) for r in resources]}, status=status.HTTP_200_OK)
 
-class ResourceViewSet(viewsets.ModelViewSet):
+class ResourceViewSet(AuditMixin, viewsets.ModelViewSet):
     queryset = Resource.objects.all().order_by("name")
     serializer_class = ResourceSerializer
-    permission_classes = [HasResourceLinkPermission]
+    permission_classes = [HasRoleResourcePermission]
     required_scopes = ["resources.read"]
 
     def get_required_scopes(self):
@@ -220,7 +221,7 @@ class ResourceViewSet(viewsets.ModelViewSet):
         self.required_scopes = self.get_required_scopes()
         return super().get_permissions()
 
-class ProfileUpdateView(APIView):
+class ProfileUpdateView(AuditMixin, APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
@@ -241,7 +242,7 @@ class UserActivityLogViewSet(viewsets.ReadOnlyModelViewSet):
     """
     queryset = UserActivityLog.objects.select_related("user").all()
     serializer_class = UserActivityLogSerializer
-    permission_classes = [HasResourceLinkPermission]
+    permission_classes = [HasRoleResourcePermission]
     required_scopes = ["activitylogs.read"]
 
     def get_queryset(self):
@@ -253,14 +254,14 @@ class UserActivityLogViewSet(viewsets.ReadOnlyModelViewSet):
     def get_required_scopes(self):
         return self.required_scopes
 
-class PermissionViewSet(viewsets.ModelViewSet):
+class PermissionViewSet(AuditMixin, viewsets.ModelViewSet):
     """
     CRUD completo para la gestión de permisos personalizados.
     Relaciona permisos con recursos del sistema.
     """
     queryset = Permission.objects.prefetch_related("resources").all()
     serializer_class = PermissionSerializer
-    permission_classes = [HasResourceLinkPermission]
+    permission_classes = [HasRoleResourcePermission]
     required_scopes = ["permissions.read"]
 
     def get_required_scopes(self):

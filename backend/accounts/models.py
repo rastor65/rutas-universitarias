@@ -1,3 +1,5 @@
+#accounts/models.py
+
 import uuid
 from django.contrib.auth.models import AbstractUser
 from django.db import models
@@ -11,6 +13,7 @@ class User(AbstractUser):
         default='avatars/default-avatar.png',
     )
     phone = models.CharField(max_length=20, blank=True)
+    identificacion = models.CharField(max_length=10, blank=True, unique=True)
     gps_latitude = models.DecimalField(max_digits=9, decimal_places=6, blank=True, null=True)
     gps_longitude = models.DecimalField(max_digits=9, decimal_places=6, blank=True, null=True)
     verified_email = models.BooleanField(default=False)

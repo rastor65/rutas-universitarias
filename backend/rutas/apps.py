@@ -1,6 +1,8 @@
 from django.apps import AppConfig
 
-
 class RutasConfig(AppConfig):
-    default_auto_field = 'django.db.models.BigAutoField'
-    name = 'rutas'
+    default_auto_field = "django.db.models.BigAutoField"
+    name = "rutas"
+
+    def ready(self):
+        import rutas.signals

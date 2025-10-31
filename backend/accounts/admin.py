@@ -74,51 +74,56 @@ class RoleResourceInline(admin.TabularInline):
 # === ADMIN PERSONALIZADOS ===
 @admin.register(User)
 class UserAdmin(BaseUserAdmin):
-    fieldsets = BaseUserAdmin.fieldsets + (
-        (_("Información adicional"), {
+    # Campos adicionales que no interfieren con los del modelo base
+    fieldsets = (
+        (_("Credenciales"), {"fields": ("username", "password")}),
+        (_("Información personal"), {"fields": ("first_name", "last_name", "email", "phone", "avatar")}),
+        (_("Estado"), {"fields": ("is_active", "is_staff", "is_superuser")}),
+        (_("Permisos"), {"fields": ("groups", "user_permissions")}),
+        (_("Información de ubicación y conexión"), {
             "fields": (
-                "avatar",
-                "phone",
                 "gps_latitude",
                 "gps_longitude",
                 "verified_email",
                 "is_active_gps",
                 "last_connection",
-            )
+            ),
         }),
+        (_("Fechas importantes"), {"fields": ("last_login", "date_joined")}),
     )
-    add_fieldsets = BaseUserAdmin.add_fieldsets + (
-        (
-            None,
-            {
-                "classes": ("wide",),
-                "fields": (
-                    "username",
-                    "password1",
-                    "password2",
-                    "avatar",
-                    "phone",
-                ),
-            },
-        ),
+
+    # Campos que se muestran al crear un nuevo usuario
+    add_fieldsets = (
+        (None, {
+            "classes": ("wide",),
+            "fields": (
+                "username",
+                "email",
+                "first_name",
+                "last_name",
+                "phone",
+                "avatar",
+                "password1",
+                "password2",
+                "identificacion",
+                "is_active",
+            ),
+        }),
     )
 
     list_display = (
         "username",
         "email",
         "phone",
+        "is_staff",
         "verified_email",
         "gps_latitude",
         "gps_longitude",
         "last_connection",
     )
-    list_filter = (
-        "is_active",
-        "verified_email",
-        "is_staff",
-        NearbyUserFilter,  # <== Aquí se agrega el filtro GPS
-    )
-    search_fields = ("username", "email", "first_name", "last_name")
+    list_filter = ("is_staff", "is_active", "verified_email", NearbyUserFilter)
+    search_fields = ("username", "email", "first_name", "last_name", "phone")
+    ordering = ("username",)
     inlines = [UserRoleInline]
 
 

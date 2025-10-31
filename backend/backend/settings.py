@@ -28,11 +28,11 @@ INSTALLED_APPS = [
     "rest_framework_simplejwt",
     "rest_framework_simplejwt.token_blacklist",
 
-    "gps",
-    "cupos",
-    "rutas",
-    "paradas",
-    "accounts",
+    "accounts.apps.AccountsConfig",
+    "rutas.apps.RutasConfig",
+    "cupos.apps.CuposConfig",
+    "gps.apps.GpsConfig",
+    "paradas.apps.ParadasConfig",
 ]
 
 MIDDLEWARE = [
@@ -42,11 +42,11 @@ MIDDLEWARE = [
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "accounts.middleware.CaptureRequestInfoMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
 
-CORS_ALLOW_ALL_ORIGINS = True
 
 ROOT_URLCONF = "backend.urls"
 
@@ -114,6 +114,12 @@ REST_FRAMEWORK = {
         "auth_login": "10/min",
         "password_reset": "5/min",
     },
+    "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
+    "DEFAULT_AUTHENTICATION_CLASSES": [
+        "rest_framework.authentication.SessionAuthentication",
+        "rest_framework.authentication.TokenAuthentication",
+        "rest_framework_simplejwt.authentication.JWTAuthentication",
+    ],
 }
 
 REST_FRAMEWORK["EXCEPTION_HANDLER"] = "accounts.exceptions.exception_handler"
@@ -132,6 +138,9 @@ SPECTACULAR_SETTINGS = {
     "DESCRIPTION": "Autenticación y RBAC; endpoints v1.",
     "VERSION": "1.0.0",
     "SERVE_INCLUDE_SCHEMA": False,
+    "SWAGGER_UI_DIST": "SIDECAR",
+    "SWAGGER_UI_FAVICON_HREF": "SIDECAR",
+    "REDOC_DIST": "SIDECAR",
     "TAGS": [
         {"name": "auth", "description": "Autenticación por sesión"},
         {"name": "users"},
@@ -146,6 +155,32 @@ CORS_ALLOWED_ORIGINS = [
     "http://127.0.0.1:4200",
 ]
 CORS_ALLOW_CREDENTIALS = True
+
+CORS_ALLOW_HEADERS = [
+    "accept",
+    "accept-encoding",
+    "authorization",
+    "content-type",
+    "dnt",
+    "origin",
+    "user-agent",
+    "x-csrftoken",
+    "x-requested-with",
+]
+
+CORS_ALLOW_METHODS = [
+    "DELETE",
+    "GET",
+    "OPTIONS",
+    "PATCH",
+    "POST",
+    "PUT",
+]
+
+
+CSRF_TRUSTED_ORIGINS = [
+    "http://localhost:4200",
+]
 
 from os import getenv
 DEBUG = getenv("DJANGO_DEBUG", "True") == "True"

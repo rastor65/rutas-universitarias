@@ -1,0 +1,53 @@
+<div class="flex items-center justify-center min-h-screen bg-gray-100">
+  <div class="w-full max-w-sm p-6 bg-white rounded-2xl shadow-md">
+    <h2 class="text-2xl font-bold text-center text-gray-800 mb-6">
+      Iniciar sesión
+    </h2>
+
+    <form [formGroup]="form" (ngSubmit)="onSubmit()" class="space-y-4">
+      <!-- Usuario -->
+      <div>
+        <label for="username" class="block text-sm font-medium text-gray-700">
+          Usuario
+        </label>
+        <input id="username" type="text" formControlName="username"
+          class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-gray-900 focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
+          placeholder="Ingrese su usuario" />
+        <div *ngIf="form.get('username')?.invalid && form.get('username')?.touched" class="text-danger">
+          El nombre de usuario es obligatorio.
+        </div>
+      </div>
+
+      <!-- Contraseña -->
+      <div>
+        <label for="password" class="block text-sm font-medium text-gray-700">
+          Contraseña
+        </label>
+        <input id="password" type="password" formControlName="password"
+          class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-gray-900 focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
+          placeholder="Ingrese su contraseña" />
+        <div *ngIf="form.get('password')?.invalid && form.get('pasword')?.touched" class="text-sm text-red-600 mt-1">
+          La contraseña es obligatoria.
+        </div>
+      </div>
+
+      <!-- Error -->
+      <div *ngIf="error" class="text-sm text-red-600 text-center">
+        {{ error }}
+      </div>
+
+      <!-- Botón -->
+      <button type="submit" [disabled]="form.invalid || loading"
+        class="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg transition disabled:bg-blue-300">
+        {{ loading ? 'Iniciando sesión...' : 'Iniciar sesión' }}
+      </button>
+    </form>
+
+    <p class="text-center text-sm text-gray-500 mt-6">
+      ¿No tienes cuenta?
+      <a routerLink="/accounts/register" class="text-blue-600 hover:underline">
+        Regístrate
+      </a>
+    </p>
+  </div>
+</div>
